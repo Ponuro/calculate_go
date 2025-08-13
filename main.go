@@ -10,112 +10,121 @@ import (
 )
 
 func main() {
-	// ввод данных
+	// Получение ввода от пользователя
 	input := getInput()
-	fmt.Println("Вы ввели:", input)
-	if input == "" {
-		panic("пустой ввод, завершение программы")
-	}
+	fmt.Println(input)
 
-	// парсинг и валидация ввода
+	// Валидация и парсинг входных данных
 	left, operator, right, err := validateInput(input)
 	if err != nil {
 		panic(err)
 	}
 
-	// валидация и парсинг операндов
+	fmt.Println("Левый операнд", left)
+	fmt.Println("Оператор", operator)
+	fmt.Println("Правый оператор", right)
+
+	// Валидация и парсинг операндов
 	a, b, isRoman, err := validateOperands(left, right, operator)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Operator:", operator)
-	fmt.Println("a =", a, "b =", b, "isRoman =", isRoman)
+	fmt.Println("a :=", a, "b :=", b, "isRoman :=", isRoman)
 
-	// выполнение операции
+	// Выполнение операции
 	result, err := calculate(a, operator, b)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(result)
 
-	// вывод результата согласно введенным данным
+	// Вывод результата согласно введенным данным
 	err = outputResult(result, isRoman)
 	if err != nil {
 		panic(err)
 	}
 }
 
+// Реализуйте следующие функции:
+
+// getInput - получает ввод от пользователя
 func getInput() string {
 	scanner := bufio.NewScanner(os.Stdin)
-
-	fmt.Println("Введите данные:")
+	fmt.Print("Введите выражение: ")
 
 	if scanner.Scan() {
 		return scanner.Text()
 	}
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Ошибка ввода", err)
-	}
 
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Ошибка ввода:", err)
+	}
 	return ""
 }
 
-func validateInput(input string) (string, string, string, error) {
+// validateInput - проверяет формат ввода и возвращает операнды и оператор
+func validateInput(input string) (left, operator, right string, err error) {
 	parts := strings.Fields(input)
 
 	if len(parts) != 3 {
 		return "", "", "", errors.New("неправильный формат ввода: ожидалось 'число оператор число'")
 	}
 
-	leftOperand := parts[0]
-	operator := parts[1]
-	rightOperand := parts[2]
+	left = parts[0]
+	operator = parts[1]
+	right = parts[2]
 
 	if operator != "+" && operator != "-" && operator != "*" && operator != "/" {
-		return "", "", "", errors.New("неподдерживаемый оператор")
+		return "", "", "", errors.New("некорректный оператор")
 	}
-
-	return leftOperand, operator, rightOperand, nil
+	return left, operator, right, nil
 }
 
-// валидация операндов
+// validateOperands - проверяет операнды и возвращает их числовые значения и тип
 func validateOperands(left, right string, operator string) (int, int, bool, error) {
-	// пробуем как арабские числа
-	aArabic, err1 := strconv.Atoi(left)
-	bArabic, err2 := strconv.Atoi(right)
+	leftRoman := isRoman(strings.ToUpper(left))
+	rightRoman := isRoman(strings.ToUpper(right))
 
-	if err1 == nil && err2 == nil {
-		if aArabic < 1 || aArabic > 10 {
-			return 0, 0, false, errors.New("левый операнд должен быть от 1 до 10")
+	// Проверяем римские
+	if leftRoman && rightRoman {
+		aRoman, err1 := romanToArabic(left)
+		bRoman, err2 := romanToArabic(right)
+		if err1 != nil || err2 != nil {
+			return 0, 0, false, errors.New("некорректный римский операнд")
 		}
-		if operator == "/" && bArabic == 0 {
-			return 0, 0, false, errors.New("деление на ноль запрещено")
+		if aRoman < 1 || aRoman > 10 {
+			return 0, 0, false, errors.New("левый римский операнд должен быть от I до X включительно")
 		}
-		if operator != "/" && (bArabic < 1 || bArabic > 10) {
-			return 0, 0, false, errors.New("правый операнд должен быть от 1 до 10")
-		}
-		return aArabic, bArabic, false, nil
-	}
-
-	if !isValidRoman(left) || !isValidRoman(right) {
-		return 0, 0, false, errors.New("некорректный синтаксис римских чисел")
-	}
-
-	// пробуем как римские числа
-	aRoman, errA := romanToArabic(left)
-	bRoman, errB := romanToArabic(right)
-
-	if errA == nil && errB == nil {
-		// проверка:
-		if aRoman > 10 || bRoman > 10 {
-			return 0, 0, false, errors.New("римские числа должны быть от I до X")
+		if bRoman < 1 || bRoman > 10 {
+			return 0, 0, false, errors.New("правый римский операнд должен быть от I до X включительно")
 		}
 		return aRoman, bRoman, true, nil
 	}
 
-	return 0, 0, false, errors.New("операнды должны быть либо арабскими, либо корректными римскими числами от I до X")
+	// Проверяем арабские
+	if !leftRoman && !rightRoman {
+		aArabic, err1 := strconv.Atoi(left)
+		bArabic, err2 := strconv.Atoi(right)
+
+		if err1 != nil || err2 != nil {
+			return 0, 0, false, errors.New("некорректный арабский операнд")
+		}
+		if operator == "/" && bArabic == 0 {
+			return 0, 0, false, errors.New("деление на ноль запрещено")
+		}
+		if aArabic < 1 || aArabic > 10 {
+			return 0, 0, false, errors.New("левый операнд должен быть от 1 до 10 включительно")
+		}
+		if bArabic < 1 || bArabic > 10 {
+			return 0, 0, false, errors.New("правый операнд должен быть от 1 до 10 включительно")
+		}
+		return aArabic, bArabic, false, nil
+	}
+	// Смешанные системы
+	return 0, 0, false, errors.New("нельзя смешивать арабские и римские числа")
 }
 
-// логика калькулятора
+// calculate - выполняет арифметическую операцию
 func calculate(a int, operator string, b int) (int, error) {
 	switch operator {
 	case "+":
@@ -126,71 +135,25 @@ func calculate(a int, operator string, b int) (int, error) {
 		return a * b, nil
 	case "/":
 		if b == 0 {
-			return 0, errors.New("invalid input")
+			return 0, errors.New("ошибка, деление на ноль")
 		}
 		return a / b, nil
 	default:
-		return 0, errors.New("invalid operator")
+		return 0, errors.New("неподдерживаемый оператор")
 	}
 }
 
-// логика перевода арабских в римские
-func arabicToRoman(num int) (string, error) {
-	if num <= 0 {
-		return "", errors.New("римские числа не могут быть <= 0")
-	}
-	values := []int{10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
-	symbols := []string{"X", "IX", "VIII", "VII", "VI", "V", "IV", "III", "II", "I"}
-
-	result := ""
-	for i := 0; i < len(values); i++ {
-		for num >= values[i] {
-			num -= values[i]
-			result += symbols[i]
-		}
-	}
-	return result, nil
-}
-
-// перевод римских в арабские
-func romanToArabic(s string) (int, error) {
-	romanNumerals := map[byte]int{
-		'I': 1,
-		'V': 5,
-		'X': 10,
-	}
-
-	result := 0
-	prev := 0
-
-	for i := len(s) - 1; i >= 0; i-- {
-		value := romanNumerals[s[i]]
-		if value < prev {
-			result -= value
-		} else {
-			result += value
-		}
-		prev = value
-	}
-
-	return result, nil
-}
-
-// исключение ввода римских чисел неверного формата
-func isValidRoman(s string) bool {
-	invalidPatterns := []string{
-		"IIII", "VV", "XXXX", "LL", "CCCC", "DD", "MMMM",
-	}
-
-	for _, pattern := range invalidPatterns {
-		if strings.Contains(s, pattern) {
+func isRoman(s string) bool {
+	romanNumerals := "IVXLCDM"
+	for _, char := range s {
+		if !strings.ContainsRune(romanNumerals, char) {
 			return false
 		}
 	}
 	return true
 }
 
-// результат перевода в римские
+// outputResult - выводит результат в соответствующей системе счисления
 func outputResult(result int, isRoman bool) error {
 	if isRoman {
 		roman, err := arabicToRoman(result)
@@ -202,4 +165,38 @@ func outputResult(result int, isRoman bool) error {
 		fmt.Println("Результат:", result)
 	}
 	return nil
+}
+
+// romanToArabic - преобразует римское число в арабское
+func romanToArabic(roman string) (int, error) {
+	validRomans := map[string]int{
+		"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
+		"VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10,
+	}
+
+	upper := strings.ToUpper(roman)
+	val, ok := validRomans[upper]
+	if !ok {
+		return 0, errors.New("некорректная запись римского числа (от I до X)")
+	}
+	return val, nil
+}
+
+// arabicToRoman - преобразует арабское число в римское
+func arabicToRoman(num int) (string, error) {
+	if num <= 0 {
+		return "", errors.New("римские числа должны быть положительными")
+	}
+
+	values := []int{100, 90, 50, 40, 10, 9, 5, 4, 1}
+	symbols := []string{"C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"}
+
+	var result strings.Builder
+	for i := 0; i < len(values); i++ {
+		for num >= values[i] {
+			num -= values[i]
+			result.WriteString(symbols[i])
+		}
+	}
+	return result.String(), nil
 }
