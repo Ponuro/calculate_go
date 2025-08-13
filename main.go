@@ -36,7 +36,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(result)
 
 	// Вывод результата согласно введенным данным
 	err = outputResult(result, isRoman)
@@ -44,8 +43,6 @@ func main() {
 		panic(err)
 	}
 }
-
-// Реализуйте следующие функции:
 
 // getInput - получает ввод от пользователя
 func getInput() string {
@@ -192,11 +189,12 @@ func arabicToRoman(num int) (string, error) {
 	symbols := []string{"C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"}
 
 	var result strings.Builder
-	for i := 0; i < len(values); i++ {
-		for num >= values[i] {
-			num -= values[i]
+	for i, val := range values {
+		for num >= val {
+			num -= val
 			result.WriteString(symbols[i])
 		}
 	}
+
 	return result.String(), nil
 }
