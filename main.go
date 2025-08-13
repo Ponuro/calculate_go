@@ -140,6 +140,7 @@ func calculate(a int, operator string, b int) (int, error) {
 	}
 }
 
+// isRoman - проверка системы счисления
 func isRoman(s string) bool {
 	romanNumerals := "IVXLCDM"
 	for _, char := range s {
@@ -195,6 +196,5 @@ func arabicToRoman(num int) (string, error) {
 			result.WriteString(symbols[i])
 		}
 	}
-
 	return result.String(), nil
 }
